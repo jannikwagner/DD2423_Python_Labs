@@ -35,7 +35,7 @@ def fftwave(u, v, sz=128):
     freq = np.array([uc, vc]) / sz
     w_D = freq * (2 * math.pi)
     wavelength2 = 1 / (np.sqrt(np.sum(np.square(freq))))
-    # print(wavelength, wavelength2)
+    # print(wavelength, wavelength2)  # the same
 
     # wavelength = 1/np.sqrt(u**2 + v**2)  # Replace by correct expression
     # amplitude = 1/sz  # Replace by correct expression
