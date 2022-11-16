@@ -127,6 +127,158 @@ if 1:
 	plt.show()
 
 
-# Exercise 2
+# Exercise 2.3
+
+if 0:
+	show_pulse_blurs = False
+	show_image_blurs = True
 	
+	t = 10 	# 0.1, 0.3, 1.0, 10.0, 100.0
+
+	# img = np.load("Images-npy/phonecalc128.npy")
+	img = np.load("Images-npy/kaffe256.npy")
 	
+	blurred_img = gaussfft(img, t)
+
+	var = variance(blurred_img)
+	print(var)
+
+	f = plt.figure()
+	f.subplots_adjust(wspace=0.1, hspace=0.2)
+	plt.rc('axes', titlesize=10)
+
+	a1 = f.add_subplot(1, 2, 1)
+	showgrey(img, False)
+	a1.title.set_text("Original image")
+
+	a2 = f.add_subplot(1, 2, 2)
+	showgrey(blurred_img, False)
+	a2.title.set_text("Image blurred with t = {}".format(t))
+	
+	plt.show()
+
+	# CODE FOR SHOWING IMAGE BLURS
+	if show_image_blurs:
+		f = plt.figure()
+		f.subplots_adjust(wspace=0.1, hspace=0.2)
+		plt.rc('axes', titlesize=10)
+
+		a1 = f.add_subplot(3, 2, 1)
+		showgrey(img, False)
+		a1.title.set_text("Original image")
+
+		a2 = f.add_subplot(3, 2, 2)
+		showgrey(gaussfft(img, 1.0), False)
+		a2.title.set_text("Image blurred with t = 1.0")
+		
+		a3 = f.add_subplot(3, 2, 3)
+		showgrey(gaussfft(img, 4.0), False)
+		a3.title.set_text("Image blurred with t = 4.0")
+		
+		a4 = f.add_subplot(3, 2, 4)
+		showgrey(gaussfft(img, 16.0), False)
+		a4.title.set_text("Image blurred with t = 16.0")
+		
+		a5 = f.add_subplot(3, 2, 5)
+		showgrey(gaussfft(img, 64.0), False)
+		a5.title.set_text("Image blurred with t = 64.0")
+		
+		a6 = f.add_subplot(3, 2, 6)
+		showgrey(gaussfft(img, 256.0), False)
+		a6.title.set_text("Image blurred with t = 256.0")
+		
+		plt.show()
+
+	# CODE FOR SHOWING ALL IMPULSE BLURS
+	if show_pulse_blurs:
+		f = plt.figure()
+		f.subplots_adjust(wspace=0.1, hspace=0.2)
+		plt.rc('axes', titlesize=10)
+
+		a1 = f.add_subplot(3, 2, 1)
+		showgrey(deltafcn(128, 128), False)
+		a1.title.set_text("Original pulse")
+
+		a2 = f.add_subplot(3, 2, 2)
+		showgrey(gaussfft(deltafcn(128, 128), 0.1), False)
+		a2.title.set_text("Image blurred with t = 0.1")
+		
+		a3 = f.add_subplot(3, 2, 3)
+		showgrey(gaussfft(deltafcn(128, 128), 0.3), False)
+		a3.title.set_text("Image blurred with t = 0.3")
+		
+		a4 = f.add_subplot(3, 2, 4)
+		showgrey(gaussfft(deltafcn(128, 128), 1.0), False)
+		a4.title.set_text("Image blurred with t = 1.0")
+		
+		a5 = f.add_subplot(3, 2, 5)
+		showgrey(gaussfft(deltafcn(128, 128), 10.0), False)
+		a5.title.set_text("Image blurred with t = 10.0")
+		
+		a6 = f.add_subplot(3, 2, 6)
+		showgrey(gaussfft(deltafcn(128, 128), 100.0), False)
+		a6.title.set_text("Image blurred with t = 100.0")
+		
+		plt.show()
+
+
+# Exercise 3.1
+if 1:
+	office = np.load("Images-npy/office256.npy")
+	add = gaussnoise(office, 16)
+	sap = sapnoise(office, 0.1, 255)
+
+	# showgrey(office)
+	# showgrey(add)
+	# showgrey(sap)
+
+	# Gaussian noise 
+	add_smooth = gaussfft(add, 9)
+	add_median = medfilt(add, 5)
+	add_lowpass = ideal(add, 0.2)
+
+	# Salt and pepper noise
+	sap_smooth = gaussfft(sap, 9)
+	sap_median = medfilt(sap, 5)
+	sap_lowpass = ideal(sap, 0.2)
+
+	f = plt.figure()
+	f.subplots_adjust(wspace=0.1, hspace=0.2)
+	plt.rc('axes', titlesize=10)
+
+	a1 = f.add_subplot(1, 3, 1)
+	showgrey(office, False)
+	a1.title.set_text("Original image")
+
+	a2 = f.add_subplot(1, 3, 2)
+	showgrey(add, False)
+	a2.title.set_text("Image with gaussian noise")
+
+	a3 = f.add_subplot(1, 3, 3)
+	showgrey(add_lowpass, False)
+	a3.title.set_text("Smoothed with lowpass (cutoff frequency 0.2)")
+	
+
+	
+
+	# a1 = f.add_subplot(3, 2, 2)
+	# showgrey(add_smooth, False)
+	# a1.title.set_text("Gauss smoothed")
+
+	# a1 = f.add_subplot(3, 2, 3)
+	# showgrey(add_median, False)
+	# a1.title.set_text("Median smoothed")
+
+	# a1 = f.add_subplot(3, 2, 4)
+	# showgrey(add_lowpass, False)
+	# a1.title.set_text("Low-pass smoothed")
+
+	plt.show()
+
+	
+
+
+
+	# Salt-and-pepper noise
+
+# Exercise 3.2

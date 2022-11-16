@@ -177,7 +177,7 @@ def sapnoise(inpic, frac, zmin = 1, zmax = 0):
 	if zmin > zmax:
 		zmin = np.min(inpic)
 		zmax = np.max(inpic)
-	noisy = inpic
+	noisy = np.copy(inpic)
 	[u, v] = np.shape(inpic)
 	Rand = np.random.rand(u, v)
 	index = np.where(Rand < frac/2)
