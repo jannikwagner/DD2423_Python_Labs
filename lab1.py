@@ -97,7 +97,7 @@ if 0:
 
 
 # Exercise 1.8 
-if 1:
+if 0:
 	img_1 = np.load("Images-npy/phonecalc128.npy")
 	img_2 = np.load("Images-npy/few128.npy")
 	img_3 = np.load("Images-npy/nallo128.npy")
@@ -223,7 +223,7 @@ if 0:
 
 
 # Exercise 3.1
-if 1:
+if 0:
 	office = np.load("Images-npy/office256.npy")
 	add = gaussnoise(office, 16)
 	sap = sapnoise(office, 0.1, 255)
@@ -257,9 +257,7 @@ if 1:
 	a3 = f.add_subplot(1, 3, 3)
 	showgrey(add_lowpass, False)
 	a3.title.set_text("Smoothed with lowpass (cutoff frequency 0.2)")
-	
 
-	
 
 	# a1 = f.add_subplot(3, 2, 2)
 	# showgrey(add_smooth, False)
@@ -275,10 +273,23 @@ if 1:
 
 	plt.show()
 
-	
 
-
-
-	# Salt-and-pepper noise
 
 # Exercise 3.2
+
+if 1:
+	img = np.load("Images-npy/phonecalc256.npy")
+	smoothimg = img
+	N = 5
+	f = plt.figure()
+	f.subplots_adjust(wspace=0, hspace=0)
+	for i in range(N):
+		if i>0: # generate subsampled versions
+			img = rawsubsample(img)
+			smoothimg = ideal(smoothimg, 0.3)
+			smoothimg = rawsubsample(smoothimg)
+		f.add_subplot(2, N, i + 1)
+		showgrey(img, False)
+		f.add_subplot(2, N, i + N + 1)
+		showgrey(smoothimg, False)
+	plt.show()
