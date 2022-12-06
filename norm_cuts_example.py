@@ -139,7 +139,7 @@ def ncuts_partition(I, W, sNcut, sArea, id, maxDepth, depth):
         ncut = ncuts_value(t, U2, W, D)
     else:
         ncut = sNcut
-    print(f'Cutting ncut=%.3f sizes=(%d,%d) %s' % (ncut, np.size(A), np.size(B), id))
+    # print(f'Cutting ncut=%.3f sizes=(%d,%d) %s' % (ncut, np.size(A), np.size(B), id))
     if np.size(A)<sArea or np.size(B)<sArea or ncut>=sNcut or depth>maxDepth:
         Seg = [ I ]
         Id = [ id ]     # for debugging
@@ -194,17 +194,17 @@ def norm_cuts_segm(I, colour_bandwidth, radius, ncuts_thresh, min_area, max_dept
     N = nRow * nCol
     V = np.reshape(I, (N, c))    
     
-    print('Compute affinity matrix...')
+    #print('Compute affinity matrix...')
     W = ncuts_affinity(I, radius, colour_bandwidth)
 
-    print('Solve eigenvalue problems to find partitions...')
+    #print('Solve eigenvalue problems to find partitions...')
     Seg = np.arange(N, dtype=np.int32)
     [Seg, Id, Ncut] = ncuts_partition(Seg, W, ncuts_thresh, min_area, 'ROOT', max_depth, 1)
 
     segm = np.zeros((N, 1), dtype=np.int32)
     for i in range(len(Seg)):
         segm[Seg[i]] = i
-        print('Ncut = %f  %s' % (Ncut[i], Id[i]))
+        #print('Ncut = %f  %s' % (Ncut[i], Id[i]))
         
     segm = np.reshape(segm, (nRow, nCol)).astype(np.int32)
     return segm
