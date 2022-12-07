@@ -70,6 +70,56 @@ def mixture_prob(image, K, L, mask):
     Output:
         prob: an image with probabilities per pixel
     """
+
+    # Let I be a set of pixels and V be a set of K Gaussian components in 3D (R,G,B).
+
+    # Store all pixels for which mask=1 in a Nx3 matrix
+    EPS = 1e-10
+    d = image.shape[-1]
+    I = image[mask]
+    Ivec = np.reshape(I, (-1, d)).astype(np.float32)
+    W = np.ones(K) / K
+
+    # Randomly initialize the K components using masked pixels
+    center_idx = np.random.randint(0, Ivec.shape[0], K)
+    centers = Ivec[center_idx, :]
+
+    # segmentation, centers = kmeans_segm(image, K, L, seed=42, spatial=False)
+    print(centers)
+
+    covariances = np.zeros((K, d, d))
+    covariances[:] = np.eye(d)  # ugly syntax, but it works
+
+    # Iterate L times
+    for i in range(L):
+        # Expectation: Compute probabilities P_ik using masked pixels
+        G = np.zeros((Ivec.shape[0], K))
+        print(i)
+        for k in range(K):
+            print(k)
+            centered = Ivec - centers[k]
+            G[:, k] = np.sum(
+                centered * (np.linalg.inv(covariances[k]) @ centered.T).T, axis=1)
+        G = np.exp(-0.5 * G)
+        G /= np.sqrt(np.linalg.det(covariances)*(2*np.pi)**d) + EPS
+
+        P = W * G
+        prob = np.sum(P, axis=1)
+        P /= prob[:, np.newaxis] + EPS
+
+        # Maximization: Update weights, means and covariances using masked pixels
+        W = np.mean(P, axis=0)
+        print(W)
+        centers = np.sum(P[:, :, np.newaxis] * Ivec[:, np.newaxis, :],
+                         axis=0) / (np.sum(P, axis=0)[:, np.newaxis] + EPS)
+        print(centers)
+        for k in range(K):
+            centered = Ivec - centers[k]
+            covariances[k] = np.sum(P[:, k, np.newaxis, np.newaxis] * (
+                centered[:, np.newaxis, :] * centered[:, :, np.newaxis]), axis=0) / (np.sum(P[:, k]) + EPS)
+        print(covariances)
+
+    # Compute probabilities p(c_i) in Eq.(3) for all pixels I.
     return prob
 
 
@@ -85,9 +135,11 @@ if __name__ == "__main__":
     plt.axis('off')
 
     # Number of clusters
-    K = 4
+    K = 6
     # Number of iterations
     L = 25
+    mask = np.ones(I_orange.shape[:2]).astype(bool)
+    mixture_prob(I_orange, K, L, mask)
     segmentation, centers = kmeans_segm(I_orange, K, L)
     # Display the segmentation
     seg_I = centers[segmentation].reshape(I_orange.shape)
