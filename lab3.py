@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from Functions import *
 from gaussfft import gaussfft
 from PIL import Image
+from scipy import stats
 
 
 def kmeans_segm(image, K, L, seed=42, spatial=False):
@@ -94,7 +95,7 @@ def mixture_prob(image, K, L, mask):
     # Iterate L times
     for i in range(L):
         # Expectation: Compute probabilities P_ik using masked pixels
-        G = normpdf(masked_Ivec, centers, covariances, EPS)
+        G = normpdf2(masked_Ivec, centers, covariances)
 
         P = W * G
         prob = np.sum(P, axis=1)
@@ -109,12 +110,12 @@ def mixture_prob(image, K, L, mask):
         for k in range(K):
             centered = masked_Ivec - centers[k]
             covariances[k] = np.sum(P[:, k, np.newaxis, np.newaxis] * (
-                centered[:, np.newaxis, :] * centered[:, :, np.newaxis]), axis=0) / (np.sum(P[:, k]) + EPS)
+                centered[:, :, np.newaxis] * centered[:, np.newaxis, :]), axis=0) / (np.sum(P[:, k]) + EPS)
         print(covariances)
 
     # Compute probabilities p(c_i) in Eq.(3) for all pixels I.
     Ivec = np.reshape(image, (-1, d)).astype(np.float32)
-    G = normpdf(Ivec, centers, covariances, EPS)
+    G = normpdf2(Ivec, centers, covariances)
     P = W * G
     prob = np.sum(P, axis=1)
     return prob
@@ -126,10 +127,33 @@ def normpdf(Ivec, centers, covariances, EPS=1e-10):
     for k in range(K):
         print(k)
         centered = Ivec - centers[k]
-        G[:, k] = np.sum(
+
+        temp = np.sum(covariances[np.newaxis, k, :, :]
+                      * centered[:, :, np.newaxis], axis=1)
+        temp = np.sum(temp * centered, axis=-1)
+
+        temp2 = np.sum(
             centered * (np.linalg.inv(covariances[k]) @ centered.T).T, axis=1)
+
+        temp3 = centered[:, np.newaxis,
+                         :] @ np.linalg.inv(covariances[k]) @ centered[:, :, np.newaxis]
+        temp3 = temp3.reshape(-1)
+        print(np.sum((temp - temp2)**2))
+        print(np.sum((temp - temp3)**2))
+        print(np.sum((temp2 - temp3)**2))
+
+        G[:, k] = temp2
     G = np.exp(-0.5 * G)
     G /= np.sqrt(np.linalg.det(covariances)*(2*np.pi)**d) + EPS
+    return G
+
+
+def normpdf2(Ivec, centers, covariances):
+    K, d = centers.shape
+    G = np.zeros((Ivec.shape[0], K))
+    for k in range(K):
+        G[:, k] = stats.multivariate_normal.pdf(
+            Ivec, centers[k], covariances[k])
     return G
 
 
