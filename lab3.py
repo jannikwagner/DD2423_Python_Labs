@@ -24,14 +24,14 @@ def kmeans_segm(image, K, L, seed=42, spatial=False):
     """
     # Randomly initialize the K cluster centers
     np.random.seed(seed)
-    c = image.shape[2]
+    c = image.shape[-1]
     aug_image = image
     if spatial:  # just an experiment, not asked for in the assignment
         X, Y = np.meshgrid(
             np.arange(image.shape[1]), np.arange(image.shape[0]))
         aug_image = np.concatenate(
             (image, X[:, :, np.newaxis], Y[:, :, np.newaxis]), axis=2)
-    d = aug_image.shape[2]
+    d = aug_image.shape[-1]
 
     Ivec = np.reshape(aug_image, (-1, d))
     center_idx = np.random.randint(0, Ivec.shape[0], K)
@@ -53,7 +53,7 @@ def kmeans_segm(image, K, L, seed=42, spatial=False):
             print('converged after', i+1, 'iterations')
             break
         old_segmentation = segmentation
-    segmentation = segmentation.reshape(image.shape[:2])
+    segmentation = segmentation.reshape(image.shape[:-1])
     return segmentation, centers[:, :c]
 
 
@@ -76,42 +76,54 @@ def mixture_prob(image, K, L, mask):
 
     # Store all pixels for which mask=1 in a Nx3 matrix
     mask = mask.astype(bool)
-    EPS = 1e-10
+    EPS = 1e-6
     d = image.shape[-1]
     masked_I = image[mask]
     masked_Ivec = np.reshape(masked_I, (-1, d)).astype(np.float32)
-    W = np.ones(K) / K
 
-    # Randomly initialize the K components using masked pixels
-    center_idx = np.random.randint(0, masked_Ivec.shape[0], K)
-    centers = masked_Ivec[center_idx, :]
-
-    # segmentation, centers = kmeans_segm(image, K, L, seed=42, spatial=False)
-    print(centers)
+    INIT_KMEANS = True
+    if not INIT_KMEANS:
+        # Randomly initialize the K components using masked pixels
+        center_idx = np.random.randint(0, masked_Ivec.shape[0], K)
+        centers = masked_Ivec[center_idx, :]
+        W = np.ones(K) / K
+    else:
+        # Initialize the K components using K-means on masked pixels
+        segmentation, centers = kmeans_segm(
+            masked_Ivec, K, L, seed=42, spatial=False)
+        W = segmentation[:, np.newaxis] == np.arange(K)[np.newaxis, :]
+        W = W.sum(axis=0) / W.sum()
+    # print("W:", W)
+    # print("centers:", centers)
 
     covariances = np.zeros((K, d, d))
-    covariances[:] = np.eye(d)  # ugly syntax, but it works
+    covariances[:] = np.eye(d)*100.  # ugly syntax, but it works
+    # print("covariances:", covariances)
 
     # Iterate L times
     for i in range(L):
+        # print("i:", i)
         # Expectation: Compute probabilities P_ik using masked pixels
         G = normpdf2(masked_Ivec, centers, covariances)
+        # print("G:", G)
 
         P = W * G
         prob = np.sum(P, axis=1)
-        P /= prob[:, np.newaxis] + EPS
+        P = P / (prob[:, np.newaxis] + EPS)
+        # print("P", P)
 
         # Maximization: Update weights, means and covariances using masked pixels
         W = np.mean(P, axis=0)
-        print(W)
+        # print("W:", W)
         centers = np.sum(P[:, :, np.newaxis] * masked_Ivec[:, np.newaxis, :],
                          axis=0) / (np.sum(P, axis=0)[:, np.newaxis] + EPS)
-        print(centers)
+        # print("centers:", centers)
+
         for k in range(K):
             centered = masked_Ivec - centers[k]
             covariances[k] = np.sum(P[:, k, np.newaxis, np.newaxis] * (
-                centered[:, :, np.newaxis] * centered[:, np.newaxis, :]), axis=0) / (np.sum(P[:, k]) + EPS)
-        print(covariances)
+                centered[:, :, np.newaxis] @ centered[:, np.newaxis, :]), axis=0) / (np.sum(P[:, k]) + EPS)
+        # print("covariances:", covariances)
 
     # Compute probabilities p(c_i) in Eq.(3) for all pixels I.
     Ivec = np.reshape(image, (-1, d)).astype(np.float32)
@@ -125,7 +137,7 @@ def normpdf(Ivec, centers, covariances, EPS=1e-10):
     K, d = centers.shape
     G = np.zeros((Ivec.shape[0], K))
     for k in range(K):
-        print(k)
+        # print(k)
         centered = Ivec - centers[k]
 
         temp = np.sum(covariances[np.newaxis, k, :, :]
@@ -142,7 +154,7 @@ def normpdf(Ivec, centers, covariances, EPS=1e-10):
         print(np.sum((temp - temp3)**2))
         print(np.sum((temp2 - temp3)**2))
 
-        G[:, k] = temp2
+        G[:, k] = temp3
     G = np.exp(-0.5 * G)
     G /= np.sqrt(np.linalg.det(covariances)*(2*np.pi)**d) + EPS
     return G
@@ -152,9 +164,23 @@ def normpdf2(Ivec, centers, covariances):
     K, d = centers.shape
     G = np.zeros((Ivec.shape[0], K))
     for k in range(K):
+        # print(k)
         G[:, k] = stats.multivariate_normal.pdf(
             Ivec, centers[k], covariances[k])
     return G
+
+
+def normpdf3(Ivec, centers, covariances):
+    K, d = centers.shape
+    G = np.zeros((Ivec.shape[0], K))
+    g_k = np.zeros((K, Ivec.shape[0], ))
+
+    for k in range(K):
+        diff = Ivec - centers[k]
+        delta = np.sum(np.dot(diff, np.linalg.inv(covariances[k])) * diff, -1)
+        g_k[k] = (1. / np.sqrt((2 * np.pi) ** 3 *
+                  np.linalg.det(covariances[k]))) * np.exp(-0.5 * delta)
+    return g_k.T
 
 
 if __name__ == "__main__":
@@ -173,7 +199,6 @@ if __name__ == "__main__":
     # Number of iterations
     L = 25
     mask = np.ones(I_orange.shape[:2]).astype(bool)
-    mixture_prob(I_orange, K, L, mask)
     segmentation, centers = kmeans_segm(I_orange, K, L)
     # Display the segmentation
     seg_I = centers[segmentation].reshape(I_orange.shape)
